@@ -1,17 +1,27 @@
-const bcryptjs = require('bcryptjs');
 const router = require('express').Router();
+const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const restricted = require('./authenticate-middleware');
 const Users = require('../users/users-model');
 const { isValid } = require('../users/user-services');
 
+router.get('/', (req, res) => {
+	Users.get()
+		.then((users) => {
+			res.status(200).json({ users, jwt: req.jwt });
+		})
+		.catch((error) => res.send(error));
+});
+
 router.post('/register', (req, res) => {
 	// implement registration
-	const credententials = req.body;
+	const credentials = req.body;
 	if (isValid(credentials)) {
 		const rounds = process.env.BCRYPT_ROUNDS || 8;
 		const hash = bcryptjs.hashSync(credentials.password, 10);
 		credentials.password = hash;
+		console.log(credentials);
 
 		Users.insert(credentials)
 			.then((user) => {
@@ -26,6 +36,8 @@ router.post('/register', (req, res) => {
 		});
 	}
 });
+
+router.use(restricted);
 
 router.post('/login', (req, res) => {
 	// implement login
